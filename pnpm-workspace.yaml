@@ -1,0 +1,4 @@
+onlyBuiltDependencies:
+  - '@parcel/watcher'
+  - '@tensorflow/tfjs-node'
+  - core-js
