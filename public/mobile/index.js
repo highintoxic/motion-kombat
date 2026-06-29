@@ -1,4 +1,5 @@
-const socket = io();
+const playerParam = new URLSearchParams(window.location.search).get('player') || '1';
+const socket = io({ query: { player: playerParam } });
 let interval;
 let phoneData = [];
 
@@ -16,6 +17,8 @@ let accelerometerData = {
 
 window.onload = function() {
     socket.emit('connected')
+    const heading = document.querySelector('h1');
+    if (heading) heading.textContent = 'Player ' + playerParam + ' — Gesture Control';
     initSensors();
 
     document.body.addEventListener('touchstart', (e) => {
