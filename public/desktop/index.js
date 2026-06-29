@@ -26,3 +26,22 @@ socket.on('gesture', function(data){
             break;
     }
 });
+
+socket.on('p2:gesture', function(data) {
+    switch(data) {
+        case 'punch':
+            punchSound.play();
+            game.triggerP2Gesture('punch');
+            break;
+        case 'hadoken':
+            hadokenSound.play();
+            game.triggerP2Gesture('hadoken');
+            break;
+        case 'uppercut':
+            uppercut.play();
+            game.triggerP2Gesture('uppercut');
+            break;
+        default:
+            break;
+    }
+});
