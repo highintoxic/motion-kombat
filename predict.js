@@ -6,9 +6,6 @@ const app = express();
 var http = require("http").createServer(app);
 const io = require("socket.io")(http);
 
-let liveData = [];
-let predictionDone = false;
-let dataPointsReceived = 0;
 let connectionsCount = 0;
 
 let model;
@@ -17,16 +14,7 @@ const gestureClasses = ["hadoken", "punch", "uppercut"];
 console.log("🚀 Starting gesture prediction server...");
 console.log("📱 Waiting for mobile device connections...");
 
-app.use("/", express.static(__dirname + "/public/desktop"));
-app.use("/predict", express.static(__dirname + "/public/mobile"));
-
-io.on("connection", async function (socket) {
-	connectionsCount++;
-	console.log(
-		`📱 New device connected! Total connections: ${connectionsCount}`
-	);
-	console.log(`🔌 Socket ID: ${socket.id}`);
-
+(async () => {
 	try {
 		console.log("🤖 Loading trained model...");
 		model = await tf.loadLayersModel("file://model/model.json");
@@ -35,8 +23,26 @@ io.on("connection", async function (socket) {
 	} catch (error) {
 		console.error("❌ Error loading model:", error.message);
 		console.log("💡 Make sure you have trained and saved a model first");
-		return;
 	}
+})();
+
+app.get('/predict2', (req, res) => res.redirect('/predict?player=2'));
+app.use("/", express.static(__dirname + "/public/desktop"));
+app.use("/predict", express.static(__dirname + "/public/mobile"));
+
+io.on("connection", async function (socket) {
+	let liveData = [];
+	let predictionDone = false;
+	let dataPointsReceived = 0;
+
+	connectionsCount++;
+	console.log(
+		`📱 New device connected! Total connections: ${connectionsCount}`
+	);
+	console.log(`🔌 Socket ID: ${socket.id}`);
+
+	const playerRole = socket.handshake.query.player === '2' ? '2' : '1';
+	console.log('Player role: ' + playerRole);
 
 	socket.on("motion data", function (data) {
 		predictionDone = false;
@@ -80,7 +86,7 @@ io.on("connection", async function (socket) {
 			if (liveData.length === 300) {
 				console.log("🔮 Starting gesture prediction...");
 				predictionDone = true;
-				predict(model, liveData);
+				predict(model, liveData, playerRole);
 				liveData = [];
 				dataPointsReceived = 0;
 			} else {
@@ -119,7 +125,7 @@ io.on("connection", async function (socket) {
 	});
 });
 
-const predict = (model, newSampleData) => {
+const predict = (model, newSampleData, playerRole) => {
 	console.log("🧠 Running prediction on collected data...");
 	console.log(`📊 Input data shape: ${newSampleData.length} points`);
 
@@ -154,7 +160,8 @@ const predict = (model, newSampleData) => {
 		// Only emit if confidence is above threshold
 		if (confidence > 0.5) {
 			console.log(`✅ High confidence prediction, sending gesture: ${winner}`);
-			io.emit("gesture", winner);
+			const gestureEvent = playerRole === '2' ? 'p2:gesture' : 'gesture';
+			io.emit(gestureEvent, winner);
 		} else {
 			console.log(
 				`⚠️  Low confidence prediction (${(confidence * 100).toFixed(
@@ -185,5 +192,6 @@ http.listen(PORT);
 
 console.log(`🌐 Server running on port ${PORT}`);
 console.log(`📱 Mobile interface: http://localhost:${PORT}/predict`);
+console.log(`📱 Player 2 mobile interface: http://localhost:${PORT}/predict2`);
 console.log(`🖥️  Desktop interface: http://localhost:${PORT}/`);
 console.log("⏳ Waiting for connections...");
