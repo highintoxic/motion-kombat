@@ -4,6 +4,9 @@ img.src = 'images/ken.png';
 let enemy = new Image();
 enemy.src = 'images/guile.png';
 
+let guileHit = new Image();
+guileHit.src = 'images/guile-hit.png';
+
 let shoruyken = new Image();
 shoruyken.src = 'images/ken-shoryuken.png';
 
@@ -35,6 +38,9 @@ let positionY = 0;
 // new try
 
 let hasMoved = false;
+let p2GestureActive = false;
+let p2GestureFrameIndex = 0;
+let p2GestureFrameTimer = 0;
 var fps, fpsInterval, startTime, now, then, elapsed;
 
 class Game{
@@ -48,6 +54,12 @@ class Game{
         this.loop = loop;
         this.spritePosition = position;
         hasMoved = true;
+    }
+
+    triggerP2Gesture(gesture) {
+        p2GestureActive = true;
+        p2GestureFrameIndex = 0;
+        p2GestureFrameTimer = 0;
     }
 
     startAnimating(fps) {
@@ -119,29 +131,39 @@ class Game{
     }
 
     initEnemy = () => {
-        let enemyCycleLoop = [0,1,2];
         window.requestAnimationFrame(this.initEnemy);
-    
+
         let canvasX = -canvas.width + 400;
         let canvasY = canvas.height - (scaledHeight + 30);
-        let frameY = 0;
-        let frameX = enemyCycleLoop[enemyLoopIndex];
-    
-        ctx.save(); 
+
+        ctx.save();
         ctx.translate(width, 0);
         ctx.scale(-1, 1);
-    
-        ctx.drawImage(enemy,
-            frameX * width, frameY * enemyHeight, width, enemyHeight,
-            canvasX, canvasY, scaledWidth, scaledHeight);
-    
-        ctx.restore(); 
-    
+
+        if (p2GestureActive) {
+            ctx.drawImage(guileHit,
+                p2GestureFrameIndex * width, 0, width, enemyHeight,
+                canvasX, canvasY, scaledWidth, scaledHeight);
+        } else {
+            let enemyCycleLoop = [0, 1, 2];
+            ctx.drawImage(enemy,
+                enemyCycleLoop[enemyLoopIndex] * width, 0, width, enemyHeight,
+                canvasX, canvasY, scaledWidth, scaledHeight);
+        }
+
+        ctx.restore();
+
         enemyFrameCount++;
         if (enemyFrameCount % 8 === 0) {
-            enemyLoopIndex++;
-            if (enemyLoopIndex >= enemyCycleLoop.length) {
-                enemyLoopIndex = 0;
+            if (p2GestureActive) {
+                p2GestureFrameIndex++;
+                if (p2GestureFrameIndex >= 3) {
+                    p2GestureActive = false;
+                    p2GestureFrameIndex = 0;
+                }
+            } else {
+                enemyLoopIndex++;
+                if (enemyLoopIndex >= 3) enemyLoopIndex = 0;
             }
             enemyFrameCount = 0;
         }
